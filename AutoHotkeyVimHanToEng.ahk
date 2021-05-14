@@ -1,9 +1,5 @@
-# AutohotkeyVimExt
-in windows control to capslock  , visual mode use other language then did't not ,solve this probrem
+;;====================FANG HAN TO ENG START =====================;;
 
-## 1. NOT ENG TO ENG START
-
-```textmate
 $Esc::
     IME_CHANGE()
     return 
@@ -46,18 +42,38 @@ Send_ImeControl(DefaultIMEWnd, wParam, lParam) {
 ImmGetDefaultIMEWnd(hWnd) {
   return DllCall("imm32\ImmGetDefaultIMEWnd", Uint,hWnd, Uint)
 }
-```
+;;====================FANG HAN TO ENG END =====================;;
 
-## 2. VIM VISUAL MODE CTRL+C,CTRL+V 
 
-```textmate
+;;====================FANG IN VISUAL MODE CTRL+C,CTRL+V START =====================;;
+; vim on visual mode use ctrl + c , ctrl + v   
 ^c::Send {Ctrl down}{Insert}{Ctrl Up}
 ^v::Send {Shift down}{Insert}{Shift Up}
-```
+;;====================FANG IN VISUAL MODE CTRL+C,CTRL+V END =======================;;
 
-## 3. CapsLock's simple function
 
-```textmate
+
+
+
+
+
+
+
+
+
+
+;;====================Feng Ruohang's AHK Script=====================;;
+;;==================================================================;;
+;;=========================CapsLock's Stuff=========================;;
+;;==================================================================;;
+SetCapsLockState, AlwaysOff
+shift & capslock::capslock
+alt & capslock::capslock
+
+
+Pause::Insert   ;; F13  or pause to insert
+;;=============================Navigator============================||
+;===========================;CapsLock+U = PageDown
 CapsLock & u::
 if getkeystate("alt") = 0
 Send, {PgUp}
@@ -158,6 +174,6 @@ CapsLock & q:: Send, !{F4}              ; Close Window  Q = {Alt + F4}
 
 										; Run Notepad++	T = {Text Editor}
 
-```
-
-
+;;==================================================================;;
+;;=========================CapsLock's Stuff=========================;;
+;;==================================================================;;
