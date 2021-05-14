@@ -154,10 +154,8 @@ CapsLock & y:: Send, ^y                	; Y = Redo
 CapsLock & s:: Send, ^{Tab}             ; Switch Tag    S = {Ctr + Tab}
 CapsLock & w:: Send, ^w                 ; Close Tag     W = {Ctr + W}
 CapsLock & q:: Send, !{F4}              ; Close Window  Q = {Alt + F4}
-              ; CapsLock::Send, {ESC}     ;Vimer's love	Capslock = {ESC}
-
-										; Run Notepad++	T = {Text Editor}
-
+; CapsLock::Send, {ESC}                 ;Vimer's love	Capslock = {ESC}
+; Run Notepad++	T = {Text Editor}
 ```
 
 
