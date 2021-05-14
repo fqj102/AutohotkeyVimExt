@@ -1,5 +1,5 @@
 # AutohotkeyVimExt
-in windows control to capslock  , visual mode use other language then did't not ,solve this probrem
+in windows control to capslock  , visual mode use other language then did not move ,solve this probrem
 
 ## 1. NOT ENG TO ENG START
 
