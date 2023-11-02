@@ -158,4 +158,9 @@ CapsLock & q:: Send, !{F4}              ; Close Window  Q = {Alt + F4}
 ; Run Notepad++	T = {Text Editor}
 ```
 
+## 4. windows auto start
+```
+WIN+R
+reg add HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v AutoHotkeyVimHanToEng /t reg_sz /d D:\soft\AutohotkeyVimExt\AutoHotkeyVimHanToEng.exe
+```
 
