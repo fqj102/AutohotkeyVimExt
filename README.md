@@ -40,7 +40,15 @@ AHK를 실행하기 전에 **반드시 아래 윈도우 설정을 먼저 진행*
 
 ---
 
+<<<<<<< HEAD
 ## 🔧 빌드 및 실행 방법
+=======
+## 4. windows auto start
+```
+WIN+R
+reg add HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v AutoHotkeyVimHanToEng /t reg_sz /d D:\soft\AutohotkeyVimExt\AutoHotkeyVimHanToEng.exe
+```
+>>>>>>> d827111843a77e281be82183b45eadc735efd441
 
 1. `Ahk2Exe` 컴파일러를 실행합니다.
 2. `AutoHotkeyVimHanToEng.ahk` 파일 선택 후 **[Convert]**를 눌러 `.exe` 파일로 빌드합니다.
