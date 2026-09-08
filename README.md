@@ -1,29 +1,33 @@
 # AutoHotkey Vim Style Navigation & IME Switcher
 
-Windows 11 환경에서 **Vim 스타일 키 Navigation**을 제공하고, **`Esc` 입력 시 자동으로 미국 영어(ENG) 키보드로 전환**해 주는 AutoHotkey 스크립트입니다.
+Windows 11 환경에서 **Vim 스타일 키 Navigation**을 제공하고, **`Esc`계열 키를 통해 ENG / 한국어 / 중국어 삼중 입력기를 제어**하는 AutoHotkey 스크립트입니다.
 
 ---
 
 ## ⚠️ [필수] 실행 전 Windows 사전 설정
 
-본 스크립트는 **`Ctrl + 1`** 단축키를 통해 입력 언어를 **영어(미국) - US**로 강제 전환합니다. 
+본 스크립트는 **윈도우 시스템 단축키**를 통해 각 언어를 직접 지정하여 전환합니다.
 AHK를 실행하기 전에 **반드시 아래 윈도우 설정을 먼저 진행**해야 정상 작동합니다.
 
 ### 1. Windows 입력 언어 단축키 설정
 1. `Win + R` 키를 눌러 실행 창을 열고 `control input.dll` 입력 (또는 **[설정] -> [시간 및 언어] -> [입력] -> [고급 키 설정]**)
 2. **[고급 키 설정]** 탭 클릭
-3. `입력 언어의 바로 가기 키` 목록에서 **`영어(미국) - US(으)로`** 항목 선택
-4. 하단의 **[키 시퀀스 변경(C)...]** 버튼 클릭
-5. **`Ctrl + 1`**로 단축키 지정 후 [확인] 및 [적용] 클릭
+3. `입력 언어의 바로 가기 키` 목록에서 아래 항목의 단축키를 지정합니다.
 
-> **Note**: 만약 다른 단축키(예: `Ctrl + Shift + 1`)로 설정하셨다면, `.ahk` 코드 내 `Send, ^1` 부분을 설정한 단축키에 맞게 수정해야 합니다.
+* **영어(미국) - US(으)로**: **`Ctrl + 1`** 지정
+* **한국어(대한민국) - Microsoft 입력기(으)로**: **`Shift + Windows`** (또는 `Win + Space`) 지정
+* **중국어 IME - IME 설정/해제**: **`Ctrl + ` `** (또는 기존 중국어 전환 단축키) 지정
+
+> **Note**: 만약 다른 단축키로 설정하셨다면, `.ahk` 코드 내 `Send` 구문의 키를 해당 설정에 맞게 수정해야 합니다.
 
 ---
 
 ## 🚀 주요 기능 (Key Features)
 
-### 1. Esc / CapsLock 기반 ENG 자동 전환
-* **`Esc`**: 눌렀을 때 `Ctrl + 1`을 발송하여 입력기를 **미국 영어(ENG)**로 강제 변경한 후 `Esc` 전달 (Vim Normal 모드 진입 최적화)
+### 1. Esc 계열 3중 IME 자동 전환
+* **`Esc`**: `Ctrl + 1`을 발송하여 **미국 영어(ENG)**로 강제 변경 후 Normal 모드 진입
+* **`Shift + Esc`**: **한국어("가" 모드)**로 즉시 전환 (`Shift + Windows` 및 `{VK21}` 발송)
+* **`Ctrl + Esc`**: **중국어 IME** 모드로 즉시 전환
 * **`CapsLock` (단독 누름)**: 0.2초 이내 단독 클릭 시 `Ctrl + 1` 발송 (영문 전환)
 
 ### 2. CapsLock 방향키 & 편집 단축키 (Vim Style)
@@ -40,15 +44,7 @@ AHK를 실행하기 전에 **반드시 아래 윈도우 설정을 먼저 진행*
 
 ---
 
-<<<<<<< HEAD
 ## 🔧 빌드 및 실행 방법
-=======
-## 4. windows auto start
-```
-WIN+R
-reg add HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v AutoHotkeyVimHanToEng /t reg_sz /d D:\soft\AutohotkeyVimExt\AutoHotkeyVimHanToEng.exe
-```
->>>>>>> d827111843a77e281be82183b45eadc735efd441
 
 1. `Ahk2Exe` 컴파일러를 실행합니다.
 2. `AutoHotkeyVimHanToEng.ahk` 파일 선택 후 **[Convert]**를 눌러 `.exe` 파일로 빌드합니다.
