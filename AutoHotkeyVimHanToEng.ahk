@@ -148,3 +148,16 @@ CapsLock & y:: Send, ^y
 CapsLock & s:: Send, ^{Tab}
 CapsLock & w:: Send, ^w
 CapsLock & q:: Send, !{F4}
+;;==================== Navicat: Ctrl+Enter = Run Selected (Ctrl+R) =====================;;
+; Navicat Query Editor: Ctrl+R = Run / Run Selected (with selection => Run Selected)
+#InstallKeybdHook
+#UseHook
+Ctrl & Enter::
+^NumpadEnter::
+    if !WinActive("ahk_exe navicat.exe") {
+        SendInput {Blind}{Enter}
+        return
+    }
+    ; Ctrl already down -> send r => Ctrl+R => Run Selected
+    SendInput {Blind}r
+    return
