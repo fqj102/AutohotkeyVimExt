@@ -31,6 +31,56 @@ CapsLock::
     }
     return
 
+; 4. Alt 단독: 즉시 한국어 한글(가)로 전환 (토글 아님, 중국어로 가지 않음)
+;    Alt+Tab 등 조합키는 ~ 로 그대로 통과
+~LAlt Up::
+    if (A_PriorKey != "LAlt")
+        return
+    SwitchToHangul()
+    return
+
+~RAlt Up::
+    if (A_PriorKey != "RAlt")
+        return
+    SwitchToHangul()
+    return
+
+; 명시적 입력 언어 전환 (Win+Space 사이클 금지 — 중국어 zh-CN 등 우회)
+; layoutName: "00000412"=한국어
+SetInputLanguage(layoutName) {
+    WinGet, hWnd, ID, A
+    if !hWnd
+        return
+    ; KLF_ACTIVATE=1
+    hkl := DllCall("LoadKeyboardLayout", "Str", layoutName, "UInt", 1)
+    if !hkl
+        return
+    ; WM_INPUTLANGCHANGEREQUEST = 0x50
+    PostMessage, 0x50, 0, %hkl%,, ahk_id %hWnd%
+}
+
+; IME를 한글(가)로 강제 — 한/영 토글 키(vk15) 사용 금지 (이미 한글이면 영어로 뒤집힘)
+IME_ForceHangul(WinTitle="A") {
+    WinGet, hWnd, ID, %WinTitle%
+    if !hWnd
+        return
+    DefaultIMEWnd := DllCall("imm32\ImmGetDefaultIMEWnd", "UInt", hWnd, "UInt")
+    if !DefaultIMEWnd
+        return
+    DetectSave := A_DetectHiddenWindows
+    DetectHiddenWindows, On
+    ; WM_IME_CONTROL(0x283) + IMC_SETOPENSTATUS(0x006) + 1 = 항상 한글(가)
+    SendMessage, 0x283, 0x006, 1,, ahk_id %DefaultIMEWnd%
+    DetectHiddenWindows, %DetectSave%
+}
+
+; Alt 단독 → 항상 한국어(00000412) + 한글(가)만. 영어 전환/토글 없음, Win+Space 없음
+SwitchToHangul() {
+    SetInputLanguage("00000412")
+    Sleep, 80
+    IME_ForceHangul()
+}
+
 ;;==================== IME SWITCHING SHORTCUTS END =====================;;
 
 

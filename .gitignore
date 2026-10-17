@@ -1,2 +1,8 @@
 .vscode
 .idea
+.ahk-tools/
+*.new.exe
+*.bak
+*.tmp
+*~
+Thumbs.db
