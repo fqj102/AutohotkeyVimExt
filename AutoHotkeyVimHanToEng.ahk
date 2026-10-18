@@ -1,5 +1,7 @@
 #Persistent
 #SingleInstance Force
+; CapsLock 시작 시 OFF만 (AlwaysOff 금지 — 켜지지 않는 문제 방지)
+SetCapsLockState, Off
 
 ;;==================== IME SWITCHING SHORTCUTS START =====================;;
 
@@ -21,28 +23,35 @@ $Esc::
     Send, ^`        ; Ctrl + ` (중국어 IME 전환)
     return
 
-; CapsLock 단독 누름: 기본 미국 영어(ENG)로 전환
-CapsLock::
+; CapsLock 단독: 대문자 락 끄고 영어(US). (켜기/끄기는 Shift+CapsLock)
+; $ = OS 기본 CapsLock 토글 차단
+$CapsLock::
     KeyWait, CapsLock, T0.2
-    if ErrorLevel {
-        ; CapsLock 조합키 사용 중
+    if !ErrorLevel {
+        SetCapsLockState, Off
+        Send, ^1    ; 단독 → 영어(미국)
     } else {
-        Send, ^1    ; 단독 입력 시 영어(미국)로 전환
+        ; 조합키(CapsLock+h 등) 사용 중 — 락은 켜지지 않게 유지
+        SetCapsLockState, Off
     }
     return
 
-; 4. Alt 단독: 즉시 한국어 한글(가)로 전환 (토글 아님, 중국어로 가지 않음)
-;    Alt+Tab 등 조합키는 ~ 로 그대로 통과
+; 4. Alt 단독: 한국어 한글(가) + 반각(반자) 모드
+;    전각(FULLSHAPE)이 켜지면 Space가 비정상적으로 넓어짐 → 반드시 해제
+;    Alt+Tab 등 조합은 ~ 로 통과, 단독 Alt 메뉴 활성화는 무해 키로 취소
 ~LAlt Up::
     if (A_PriorKey != "LAlt")
         return
     SwitchToHangul()
+    ; Alt 단독 후 메뉴바 포커스 방지 (입력란에 Space 영향 없음)
+    SendInput, {Blind}{Ctrl}
     return
 
 ~RAlt Up::
     if (A_PriorKey != "RAlt")
         return
     SwitchToHangul()
+    SendInput, {Blind}{Ctrl}
     return
 
 ; 명시적 입력 언어 전환 (Win+Space 사이클 금지 — 중국어 zh-CN 등 우회)
@@ -59,7 +68,7 @@ SetInputLanguage(layoutName) {
     PostMessage, 0x50, 0, %hkl%,, ahk_id %hWnd%
 }
 
-; IME를 한글(가)로 강제 — 한/영 토글 키(vk15) 사용 금지 (이미 한글이면 영어로 뒤집힘)
+; IME: 한글(가) ON + 전각(FULLSHAPE) OFF (넓은 공백 원인)
 IME_ForceHangul(WinTitle="A") {
     WinGet, hWnd, ID, %WinTitle%
     if !hWnd
@@ -69,15 +78,24 @@ IME_ForceHangul(WinTitle="A") {
         return
     DetectSave := A_DetectHiddenWindows
     DetectHiddenWindows, On
-    ; WM_IME_CONTROL(0x283) + IMC_SETOPENSTATUS(0x006) + 1 = 항상 한글(가)
+    ; IMC_GETCONVERSIONMODE = 0x001
+    SendMessage, 0x283, 0x001, 0,, ahk_id %DefaultIMEWnd%
+    mode := ErrorLevel
+    if (mode = "")
+        mode := 0
+    ; IME_CMODE_NATIVE(한글)=0x1 켜기, IME_CMODE_FULLSHAPE(전각)=0x8 끄기
+    mode := (mode | 0x1) & ~0x8
+    ; IMC_SETCONVERSIONMODE = 0x002
+    SendMessage, 0x283, 0x002, %mode%,, ahk_id %DefaultIMEWnd%
+    ; IMC_SETOPENSTATUS = 0x006 → 한글(가) 열기
     SendMessage, 0x283, 0x006, 1,, ahk_id %DefaultIMEWnd%
     DetectHiddenWindows, %DetectSave%
 }
 
-; Alt 단독 → 항상 한국어(00000412) + 한글(가)만. 영어 전환/토글 없음, Win+Space 없음
+; Alt 단독 → 한국어 레이아웃 + 한글(가) + 반각
 SwitchToHangul() {
     SetInputLanguage("00000412")
-    Sleep, 80
+    Sleep, 50
     IME_ForceHangul()
 }
 
@@ -90,9 +108,14 @@ SwitchToHangul() {
 
 
 ;;==================== CapsLock Navigation & Shortcuts =====================;;
-SetCapsLockState, AlwaysOff
-+CapsLock::CapsLock
-!CapsLock::CapsLock
+; Shift+CapsLock / Alt+CapsLock = 실제 CapsLock ON/OFF 토글
++CapsLock::
+!CapsLock::
+    if GetKeyState("CapsLock", "T")
+        SetCapsLockState, Off
+    else
+        SetCapsLockState, On
+    return
 
 Pause::Insert
 
