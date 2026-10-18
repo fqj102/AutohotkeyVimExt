@@ -36,66 +36,88 @@ $CapsLock::
     }
     return
 
-; 4. Alt 단독: 한국어 한글(가) + 반각(반자) 모드
-;    전각(FULLSHAPE)이 켜지면 Space가 비정상적으로 넓어짐 → 반드시 해제
-;    Alt+Tab 등 조합은 ~ 로 통과, 단독 Alt 메뉴 활성화는 무해 키로 취소
+; 4. Alt 단독: 한국어 한글(가) + 반각
+;    ※ Alt 직후 Ctrl 전송 금지 — IME 한글이 다시 풀림
 ~LAlt Up::
     if (A_PriorKey != "LAlt")
         return
     SwitchToHangul()
-    ; Alt 단독 후 메뉴바 포커스 방지 (입력란에 Space 영향 없음)
-    SendInput, {Blind}{Ctrl}
     return
 
 ~RAlt Up::
     if (A_PriorKey != "RAlt")
         return
     SwitchToHangul()
-    SendInput, {Blind}{Ctrl}
     return
 
-; 명시적 입력 언어 전환 (Win+Space 사이클 금지 — 중국어 zh-CN 등 우회)
-; layoutName: "00000412"=한국어
+; layoutName 예: "00000412"=한국어
 SetInputLanguage(layoutName) {
     WinGet, hWnd, ID, A
     if !hWnd
         return
-    ; KLF_ACTIVATE=1
     hkl := DllCall("LoadKeyboardLayout", "Str", layoutName, "UInt", 1)
     if !hkl
         return
-    ; WM_INPUTLANGCHANGEREQUEST = 0x50
+    DllCall("ActivateKeyboardLayout", "UInt", hkl, "UInt", 0)
     PostMessage, 0x50, 0, %hkl%,, ahk_id %hWnd%
 }
 
-; IME: 한글(가) ON + 전각(FULLSHAPE) OFF (넓은 공백 원인)
+; 현재 한글(가) 여부 (1=한글, 0=영문/실패)
+IME_IsHangul(WinTitle="A") {
+    WinGet, hWnd, ID, %WinTitle%
+    if !hWnd
+        return 0
+    DefaultIMEWnd := DllCall("imm32\ImmGetDefaultIMEWnd", "UInt", hWnd, "UInt")
+    if !DefaultIMEWnd
+        return 0
+    DetectSave := A_DetectHiddenWindows
+    DetectHiddenWindows, On
+    SendMessage, 0x283, 0x005, 0,, ahk_id %DefaultIMEWnd%
+    result := ErrorLevel
+    DetectHiddenWindows, %DetectSave%
+    if result is not integer
+        return 0
+    return result
+}
+
+; IME: 한글(가) ON + 전각 OFF. 영문(A)일 때만 한/영키 1회 (두 번 누르면 다시 영문 됨)
 IME_ForceHangul(WinTitle="A") {
     WinGet, hWnd, ID, %WinTitle%
     if !hWnd
         return
     DefaultIMEWnd := DllCall("imm32\ImmGetDefaultIMEWnd", "UInt", hWnd, "UInt")
-    if !DefaultIMEWnd
-        return
-    DetectSave := A_DetectHiddenWindows
-    DetectHiddenWindows, On
-    ; IMC_GETCONVERSIONMODE = 0x001
-    SendMessage, 0x283, 0x001, 0,, ahk_id %DefaultIMEWnd%
-    mode := ErrorLevel
-    if (mode = "")
-        mode := 0
-    ; IME_CMODE_NATIVE(한글)=0x1 켜기, IME_CMODE_FULLSHAPE(전각)=0x8 끄기
-    mode := (mode | 0x1) & ~0x8
-    ; IMC_SETCONVERSIONMODE = 0x002
-    SendMessage, 0x283, 0x002, %mode%,, ahk_id %DefaultIMEWnd%
-    ; IMC_SETOPENSTATUS = 0x006 → 한글(가) 열기
-    SendMessage, 0x283, 0x006, 1,, ahk_id %DefaultIMEWnd%
-    DetectHiddenWindows, %DetectSave%
+    if DefaultIMEWnd {
+        DetectSave := A_DetectHiddenWindows
+        DetectHiddenWindows, On
+        SendMessage, 0x283, 0x001, 0,, ahk_id %DefaultIMEWnd%
+        mode := ErrorLevel
+        if mode is integer
+        {
+            ; NATIVE=0x1 on, FULLSHAPE=0x8 off
+            mode := (mode | 0x1) & ~0x8
+            SendMessage, 0x283, 0x002, %mode%,, ahk_id %DefaultIMEWnd%
+        }
+        SendMessage, 0x283, 0x006, 1,, ahk_id %DefaultIMEWnd%
+        Sleep, 20
+        SendMessage, 0x283, 0x005, 0,, ahk_id %DefaultIMEWnd%
+        status := ErrorLevel
+        DetectHiddenWindows, %DetectSave%
+        ; IMM이 "영문(A)"라고 명확히 알려줄 때만 한/영키 1회
+        if status is integer
+        {
+            if (status = 0)
+                SendInput, {vk15sc138}
+            return
+        }
+    }
+    ; IMM 완전 실패 시: 한/영키 1회만 (토글 — 최선)
+    SendInput, {vk15sc138}
 }
 
-; Alt 단독 → 한국어 레이아웃 + 한글(가) + 반각
+; Alt 단독 → 한국어 + 한글(가) + 반각
 SwitchToHangul() {
     SetInputLanguage("00000412")
-    Sleep, 50
+    Sleep, 40
     IME_ForceHangul()
 }
 
