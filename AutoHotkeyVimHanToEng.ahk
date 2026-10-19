@@ -1,5 +1,9 @@
 #Persistent
 #SingleInstance Force
+#InstallKeybdHook
+; Alt 단독 훅이 기본 Ctrl 마스크를 보내면 한글이 풀림 + 확장키(RShift) 꼬임
+; 미사용 키로 메뉴 마스크 (Ctrl/Alt 아님)
+#MenuMaskKey vkE8
 ; CapsLock 시작 시 OFF만 (AlwaysOff 금지 — 켜지지 않는 문제 방지)
 SetCapsLockState, Off
 
@@ -11,8 +15,10 @@ $Esc::
     Send, {Escape}  ; Esc 전달
     return 
 
-; 2. Shift + Esc: 한국어 전환 후 즉시 '가' 모드로 강제 설정
-+Esc::
+; 2. LShift + Esc: 한국어 전환 후 즉시 '가' 모드로 강제 설정
+;    ※ +Esc 금지 — 양쪽 Shift 훅이 RShift+2(@)를 깨뜨림
+;    ※ ~LShift — LShift를 prefix로 고정하지 않음 (대문자/기호 유지)
+~LShift & Esc::
     Send, #{Space}  ; Win + Space (한국어 전환)
     Sleep, 150      ; IME 반응 대기시간 소폭 증가
     Send, {VK21}    ; 한/영 전환 키 (A -> '가' 변경)
@@ -23,7 +29,7 @@ $Esc::
     Send, ^`        ; Ctrl + ` (중국어 IME 전환)
     return
 
-; CapsLock 단독: 대문자 락 끄고 영어(US). (켜기/끄기는 Shift+CapsLock)
+; CapsLock 단독: 대문자 락 끄고 영어(US). (켜기/끄기는 LShift+CapsLock)
 ; $ = OS 기본 CapsLock 토글 차단
 $CapsLock::
     KeyWait, CapsLock, T0.2
@@ -36,19 +42,52 @@ $CapsLock::
     }
     return
 
-; 4. Alt 단독: 한국어 한글(가) + 반각
+; 4. Alt 단독 (좌·우):
+;    - Vim 계열: Insert(edit) + 한국어
+;    - 그 외: 한국어만
+;    ※ vk15/sc138 전송 금지 — RAlt·RShift 확장키 꼬임 방지
 ;    ※ Alt 직후 Ctrl 전송 금지 — IME 한글이 다시 풀림
 ~LAlt Up::
     if (A_PriorKey != "LAlt")
         return
-    SwitchToHangul()
+    AltAloneAction()
     return
 
 ~RAlt Up::
     if (A_PriorKey != "RAlt")
         return
-    SwitchToHangul()
+    AltAloneAction()
     return
+
+AltAloneAction() {
+    if (IsVimEditor())
+        VimEnterInsert()
+    SwitchToHangul()
+}
+
+; vscodevim / Vim / Neovim 등
+IsVimEditor() {
+    WinGet, exe, ProcessName, A
+    if (exe = "")
+        return 0
+    StringLower, exe, exe
+    ; 네이티브 Vim
+    if exe in gvim.exe,vim.exe,nvim.exe,nvim-qt.exe,neovide.exe,goneovim.exe
+        return 1
+    ; VS Code 계열 + vim 확장 사용 전제 (Esc=Normal/ENG 워크플로)
+    if exe in code.exe,code - insiders.exe,cursor.exe,trae.exe,windsurf.exe,vscodium.exe
+        return 1
+    return 0
+}
+
+; Insert 모드 진입. $Esc 핫키(ENG 전환)는 잠시 끄고 Esc 전송
+VimEnterInsert() {
+    Hotkey, $Esc, Off
+    SendInput {Esc}
+    Sleep, 20
+    SendInput i
+    Hotkey, $Esc, On
+}
 
 ; layoutName 예: "00000412"=한국어
 SetInputLanguage(layoutName) {
@@ -80,38 +119,26 @@ IME_IsHangul(WinTitle="A") {
     return result
 }
 
-; IME: 한글(가) ON + 전각 OFF. 영문(A)일 때만 한/영키 1회 (두 번 누르면 다시 영문 됨)
+; IME: 한글(가) ON + 전각 OFF (IMM만 사용 — vk15/한영키는 RAlt와 동일)
 IME_ForceHangul(WinTitle="A") {
     WinGet, hWnd, ID, %WinTitle%
     if !hWnd
         return
     DefaultIMEWnd := DllCall("imm32\ImmGetDefaultIMEWnd", "UInt", hWnd, "UInt")
-    if DefaultIMEWnd {
-        DetectSave := A_DetectHiddenWindows
-        DetectHiddenWindows, On
-        SendMessage, 0x283, 0x001, 0,, ahk_id %DefaultIMEWnd%
-        mode := ErrorLevel
-        if mode is integer
-        {
-            ; NATIVE=0x1 on, FULLSHAPE=0x8 off
-            mode := (mode | 0x1) & ~0x8
-            SendMessage, 0x283, 0x002, %mode%,, ahk_id %DefaultIMEWnd%
-        }
-        SendMessage, 0x283, 0x006, 1,, ahk_id %DefaultIMEWnd%
-        Sleep, 20
-        SendMessage, 0x283, 0x005, 0,, ahk_id %DefaultIMEWnd%
-        status := ErrorLevel
-        DetectHiddenWindows, %DetectSave%
-        ; IMM이 "영문(A)"라고 명확히 알려줄 때만 한/영키 1회
-        if status is integer
-        {
-            if (status = 0)
-                SendInput, {vk15sc138}
-            return
-        }
+    if !DefaultIMEWnd
+        return
+    DetectSave := A_DetectHiddenWindows
+    DetectHiddenWindows, On
+    SendMessage, 0x283, 0x001, 0,, ahk_id %DefaultIMEWnd%
+    mode := ErrorLevel
+    if mode is integer
+    {
+        ; NATIVE=0x1 on, FULLSHAPE=0x8 off
+        mode := (mode | 0x1) & ~0x8
+        SendMessage, 0x283, 0x002, %mode%,, ahk_id %DefaultIMEWnd%
     }
-    ; IMM 완전 실패 시: 한/영키 1회만 (토글 — 최선)
-    SendInput, {vk15sc138}
+    SendMessage, 0x283, 0x006, 1,, ahk_id %DefaultIMEWnd%
+    DetectHiddenWindows, %DetectSave%
 }
 
 ; Alt 단독 → 한국어 + 한글(가) + 반각
@@ -124,15 +151,13 @@ SwitchToHangul() {
 ;;==================== IME SWITCHING SHORTCUTS END =====================;;
 
 
-;;==================== VISUAL MODE CTRL+C, CTRL+V =====================;;
-^c::Send {Ctrl down}{Insert}{Ctrl Up}
-^v::Send {Shift down}{Insert}{Shift Up}
-
-
 ;;==================== CapsLock Navigation & Shortcuts =====================;;
-; Shift+CapsLock / Alt+CapsLock = 실제 CapsLock ON/OFF 토글
-+CapsLock::
-!CapsLock::
+; Ctrl+C / Ctrl+V 는 OS 기본 동작 유지 (예전에 Ctrl+Insert/Shift+Insert로
+; 가로채면 일반 앱에서 복사·붙여넣기가 안 됨)
+; LShift+CapsLock / LAlt+CapsLock = 실제 CapsLock ON/OFF 토글
+; ※ +CapsLock / !CapsLock 금지 — RShift·RAlt 수정키와 충돌
+~LShift & CapsLock::
+~LAlt & CapsLock::
     if GetKeyState("CapsLock", "T")
         SetCapsLockState, Off
     else
@@ -195,14 +220,12 @@ CapsLock & w:: Send, ^w
 CapsLock & q:: Send, !{F4}
 ;;==================== Navicat: Ctrl+Enter = Run Selected (Ctrl+R) =====================;;
 ; Navicat Query Editor: Ctrl+R = Run / Run Selected (with selection => Run Selected)
-#InstallKeybdHook
-#UseHook
-Ctrl & Enter::
-^NumpadEnter::
+; Ctrl & Enter 금지 — Ctrl을 prefix로 만들면 다른 수정키(RShift 등)와 충돌
+$^Enter::
+$^NumpadEnter::
     if !WinActive("ahk_exe navicat.exe") {
         SendInput {Blind}{Enter}
         return
     }
-    ; Ctrl already down -> send r => Ctrl+R => Run Selected
-    SendInput {Blind}r
+    SendInput {Blind}^r
     return
